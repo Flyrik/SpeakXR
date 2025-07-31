@@ -1,0 +1,263 @@
+using UnityEngine;
+using UnityEngine.UI;
+using Microsoft.CognitiveServices.Speech;
+using TMPro;
+using System.Threading.Tasks;
+using System.IO;
+
+public class SpeechManager : MonoBehaviour
+{
+    public Button startButton;
+    public Button stopButton;
+    public TextMeshProUGUI displayText;
+
+    private string azureApiKey = "CAxQBlvNlBhA26PflkfYuu5bPb59X37HzolEcR4EiFsiTqUvHDizJQQJ99BDAC5T7U2XJ3w3AAAYACOGjmN0"; // CLE API A METTRE ICI
+    private string azureRegion = "francecentral";
+    private SpeechRecognizer recognizer;
+    private string language = "fr-FR";
+
+    private string livePreviewText = "";
+    private string finalTranscript = ""; 
+    private bool isRecognizing = false;
+
+    private System.DateTime lastRecognizedTime;
+    private int pauseCount = 0;
+    private float pauseThresholdSeconds = 4f;
+    private string finalTranscriptWithPauses = "";
+    private string finalTranscriptWithPausesRichText = "";
+
+    private int fillerCount = 0;
+    private int repetitionCount = 0;
+    private float speechStartTime;
+
+    void Start()
+    {
+        startButton.onClick.AddListener(StartRecognition);
+        stopButton.onClick.AddListener(StopRecognition);
+        displayText.text = "Appuie sur Démarrer pour parler.";
+    }
+
+    void Update()
+    {
+        if (isRecognizing)
+        {
+            displayText.text = livePreviewText;
+        }
+    }
+
+    async void StartRecognition()
+    {
+        var config = SpeechConfig.FromSubscription(azureApiKey, azureRegion);
+
+        config.SetServiceProperty("SpeechServiceResponse_PostProcessingOption", "None", ServicePropertyChannel.UriQueryParameter);
+        config.OutputFormat = OutputFormat.Detailed;
+
+        recognizer = new SpeechRecognizer(config, language);
+
+        var hints = PhraseListGrammar.FromRecognizer(recognizer);
+        hints.AddPhrase("euh");
+        hints.AddPhrase("euuu");
+        hints.AddPhrase("euhhh");
+        hints.AddPhrase("hum");
+        hints.AddPhrase("heu");
+        hints.AddPhrase("mh");
+        hints.AddPhrase("mmh");
+
+        livePreviewText = "Parle maintenant...";
+        finalTranscript = "";
+        finalTranscriptWithPauses = "";
+        finalTranscriptWithPausesRichText = "";
+        pauseCount = 0;
+        fillerCount = 0;
+        repetitionCount = 0;
+        lastRecognizedTime = default;
+
+        isRecognizing = true;
+
+        recognizer.Recognizing += (s, e) =>
+        {
+            if (!string.IsNullOrWhiteSpace(e.Result.Text))
+            {
+                livePreviewText = finalTranscriptWithPauses + e.Result.Text;
+                Debug.Log("Reconnaissance EN COURS : " + livePreviewText);
+
+                var matches = System.Text.RegularExpressions.Regex
+                    .Matches(e.Result.Text, @"\b(euh|hum|heu|mmh)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                if (matches.Count > 0)
+                {
+                    fillerCount += matches.Count;
+                    foreach (System.Text.RegularExpressions.Match m in matches)
+                        Debug.Log($"Filler détecté : '{m.Value}' total hésitations = {fillerCount}");
+                }
+            }
+        };
+
+        recognizer.Recognized += (s, e) =>
+        {
+            if (e.Result.Reason == ResultReason.RecognizedSpeech && !string.IsNullOrWhiteSpace(e.Result.Text))
+            {
+                Debug.Log("Reconnu : " + e.Result.Text);
+
+                var currentTime = System.DateTime.Now;
+                if (lastRecognizedTime != default)
+                {
+                    var delta = (currentTime - lastRecognizedTime).TotalSeconds;
+                    if (delta > pauseThresholdSeconds)
+                    {
+                        pauseCount++;
+
+                        string plainPause = " (...) ";
+                        string richPause = " <span style='color:red'>(...)</span> ";
+
+                        finalTranscript += plainPause;
+                        finalTranscriptWithPauses += plainPause;
+                        finalTranscriptWithPausesRichText += richPause;
+
+                        Debug.Log($"Pause détectée ({delta:F1} sec). Total pauses : {pauseCount}");
+                    }
+                }
+
+                lastRecognizedTime = currentTime;
+
+                // Détection de répétitions
+                string[] words = e.Result.Text.ToLower().Split(' ');
+                for (int i = 1; i < words.Length; i++)
+                {
+                    if (words[i] == words[i - 1] && words[i].Length > 1)
+                    {
+                        repetitionCount++;
+                        Debug.Log($"Répétition détectée : '{words[i]}' total répétitions = {repetitionCount}");
+                    }
+                }
+
+                finalTranscript += e.Result.Text + " ";
+                finalTranscriptWithPauses += e.Result.Text + " ";
+                finalTranscriptWithPausesRichText += e.Result.Text + " ";
+
+                livePreviewText = finalTranscriptWithPauses;
+            }
+        };
+
+        recognizer.Canceled += (s, e) =>
+        {
+            Debug.LogError("Erreur Azure Speech : " + e.ErrorDetails);
+            livePreviewText = "Erreur : " + e.ErrorDetails;
+        };
+
+        recognizer.SessionStopped += (s, e) =>
+        {
+            Debug.Log("Session terminée.");
+            isRecognizing = false;
+        };
+
+        speechStartTime = Time.time;
+        await recognizer.StartContinuousRecognitionAsync();
+
+        Debug.Log("Reconnaissance démarrée.");
+    }
+
+    async void StopRecognition()
+    {
+        if (recognizer != null)
+        {
+            await recognizer.StopContinuousRecognitionAsync();
+            recognizer.Dispose();
+            recognizer = null;
+
+            Debug.Log("Reconnaissance arrêtée.");
+            isRecognizing = false;
+            livePreviewText = "";
+
+            float totalSpeechSeconds = Time.time - speechStartTime;
+
+            float fillersPerMinute = fillerCount / totalSpeechSeconds * 60f;
+            float pausesPerMinute = pauseCount / totalSpeechSeconds * 60f;
+            float repetitionsPerMinute = repetitionCount / totalSpeechSeconds * 60f;
+
+            float normFillers = Mathf.Clamp01(fillersPerMinute / 20f);
+            float normPauses = Mathf.Clamp01(pausesPerMinute / 5f);
+            float normRepetitions = Mathf.Clamp01(repetitionsPerMinute / 10f);
+
+            float weightFillers = 0.4f;
+            float weightPauses = 0.3f;
+            float weightRepetitions = 0.3f;
+
+            float stressPercent = (
+                normFillers * weightFillers +
+                normPauses * weightPauses +
+                normRepetitions * weightRepetitions
+            ) * 100f;
+
+            displayText.text =
+                $"<b>Texte final :</b>\n{finalTranscriptWithPauses}\n\n" +
+                $"<b>Pauses/min :</b> {pausesPerMinute:F1}\n" +
+                $"<b>Hésitations/min :</b> {fillersPerMinute:F1}\n" +
+                $"<b>Répétitions/min :</b> {repetitionsPerMinute:F1}\n\n" +
+                $"<color=yellow><b>Indice de stress :</b> {stressPercent:F1}%</color>";
+
+            SaveTranscriptToTextFile();
+            SaveTranscriptToHtmlFile();
+
+            pauseCount = 0;
+            fillerCount = 0;
+            repetitionCount = 0;
+        }
+    }
+
+    void SaveTranscriptToTextFile()
+    {
+        string fileName = "Transcription_" + System.DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".txt";
+        string path = Path.Combine(Application.persistentDataPath, fileName);
+
+        string fullText = finalTranscriptWithPauses +
+            $"\n\nNombre de pauses détectées (> {pauseThresholdSeconds}s) : {pauseCount}" +
+            $"\nNombre d'hésitations : {fillerCount}" +
+            $"\nNombre de répétitions : {repetitionCount}";
+
+        File.WriteAllText(path, fullText);
+        Debug.Log("Transcription TXT sauvegardée dans : " + path);
+    }
+
+    void SaveTranscriptToHtmlFile()
+    {
+        string fileName = "Transcription_" + System.DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".html";
+        string path = Path.Combine(Application.persistentDataPath, fileName);
+
+        string html = $@"
+<!DOCTYPE html>
+<html lang='fr'>
+<head>
+    <meta charset='UTF-8'>
+    <title>Transcription du pitch</title>
+    <style>
+        body {{
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }}
+        .pause {{
+            color: red;
+            font-weight: bold;
+        }}
+        .footer {{
+            margin-top: 30px;
+            font-weight: bold;
+            color: #444;
+        }}
+    </style>
+</head>
+<body>
+    <h2>Transcription avec pauses détectées</h2>
+    <p>{finalTranscriptWithPausesRichText}</p>
+    <div class='footer'>
+        Nombre de pauses détectées (&gt; {pauseThresholdSeconds}s) : {pauseCount}<br>
+        Nombre d'hésitations : {fillerCount}<br>
+        Nombre de répétitions : {repetitionCount}
+    </div>
+</body>
+</html>";
+
+        File.WriteAllText(path, html);
+        Debug.Log("Transcription HTML sauvegardée dans : " + path);
+    }
+}

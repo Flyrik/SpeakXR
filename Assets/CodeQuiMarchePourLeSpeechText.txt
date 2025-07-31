@@ -1,0 +1,89 @@
+using UnityEngine;
+using UnityEngine.UI;
+using Microsoft.CognitiveServices.Speech;
+using TMPro;
+using System.Threading.Tasks;
+
+public class AzureSpeechControl : MonoBehaviour
+{
+    public Button startButton;
+    public Button stopButton;
+    public TextMeshProUGUI displayText;
+
+    private string azureApiKey = "CAxQBlvNlBhA26PflkfYuu5bPb59X37HzolEcR4EiFsiTqUvHDizJQQJ99BDAC5T7U2XJ3w3AAAYACOGjmN0";
+    private string azureRegion = "francecentral";
+    private SpeechRecognizer recognizer;
+    private string language = "fr-FR";
+
+    private string livePreviewText = "";
+    private string finalTranscript = "";
+    private bool isRecognizing = false;
+
+    void Start()
+    {
+        startButton.onClick.AddListener(StartRecognition);
+        stopButton.onClick.AddListener(StopRecognition);
+        displayText.text = "Appuie sur Démarrer pour parler.";
+    }
+
+    void Update()
+    {
+        if (isRecognizing)
+        {
+            displayText.text = livePreviewText;
+        }
+    }
+
+    async void StartRecognition()
+    {
+        var config = SpeechConfig.FromSubscription(azureApiKey, azureRegion);
+        recognizer = new SpeechRecognizer(config, language);
+
+        recognizer.Recognizing += (s, e) =>
+        {
+            livePreviewText = e.Result.Text;
+            Debug.Log("Reconnaissance en cours : " + e.Result.Text);
+        };
+
+        recognizer.Recognized += (s, e) =>
+        {
+            if (e.Result.Reason == ResultReason.RecognizedSpeech)
+            {
+                Debug.Log("Reconnu : " + e.Result.Text);
+                finalTranscript += e.Result.Text + " "; // concatène chaque phrase reconnue
+            }
+        };
+
+        recognizer.Canceled += (s, e) =>
+        {
+            Debug.LogError("Erreur Azure Speech : " + e.ErrorDetails);
+            livePreviewText = "Erreur : " + e.ErrorDetails;
+        };
+
+        recognizer.SessionStopped += (s, e) =>
+        {
+            Debug.Log("Session terminée.");
+        };
+
+        await recognizer.StartContinuousRecognitionAsync();
+        Debug.Log("Reconnaissance démarrée.");
+        isRecognizing = true;
+        livePreviewText = "Parle maintenant...";
+        finalTranscript = ""; // reset au démarrage
+    }
+
+    async void StopRecognition()
+    {
+        if (recognizer != null)
+        {
+            await recognizer.StopContinuousRecognitionAsync();
+            recognizer.Dispose();
+            recognizer = null;
+
+            Debug.Log("Reconnaissance arrêtée.");
+            isRecognizing = false;
+            livePreviewText = "";
+            displayText.text = "Texte final :\n" + finalTranscript;
+        }
+    }
+}
