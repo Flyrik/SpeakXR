@@ -11,3 +11,4 @@ L’objectif de SPEAKXR est triple :
 - Rendre la formation aux soft skills accessible et autonome, par un dispositif entièrement déployable sur un simple casque VR, avec export des rapports en formats HTML ou TXT. 
 
 
+Afin d'avoir accès a l'IA, mettre l'API d'Azure modifier dans SpeechManagerAvBasti :  private string azureApiKey = " ";
