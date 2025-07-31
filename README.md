@@ -1,0 +1,13 @@
+La prise de parole en public est une compétence essentielle tant dans le monde académique que professionnel, mais demeure une source d’anxiété et d’inhibition pour de nombreux apprenants. En l’absence d’un cadre d’entraînement régulier et de retours objectifs, il est difficile de progresser et de gagner en confiance. Parallèlement, les méthodes traditionnelles de formation ; ateliers en présentiel, jeux de rôle, coachings individuels, sont souvent lourdes à déployer, coûteuses et limitées en termes de personnalisation et de fréquence. 
+
+Le projet SPEAKXR propose de relever ces défis en offrant une solution immersive de formation à la prise de parole, fondée sur la réalité virtuelle et l’analyse automatique du discours. Grâce à l’utilisation d’Unity et du casque Meta Quest, l’utilisateur évolue librement dans des environnements virtuels reproduisant des salles de classe ou des amphithéâtres, peuplés d’avatars réalistes animés via Mixamo. En parallèle, l’intégration de l’API Azure Speech SDK permet de transcrire en temps réel la voix de l’orateur et de détecter automatiquement les marqueurs de stress (pauses prolongées, hésitations, répétitions), pour générer à l’issue de chaque session un retour quantifié, objectif et immédiatement exploitable. 
+
+L’objectif de SPEAKXR est triple : 
+
+- Réduire le stress lié à l’exercice de la prise de parole, en proposant un environnement sans jugement et sans formateur présent physiquement. 
+
+- Renforcer la confiance en soi, grâce à des exercices progressifs et des indicateurs de performance clairs. 
+
+- Rendre la formation aux soft skills accessible et autonome, par un dispositif entièrement déployable sur un simple casque VR, avec export des rapports en formats HTML ou TXT. 
+
+
