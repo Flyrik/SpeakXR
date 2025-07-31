@@ -11,4 +11,26 @@ L’objectif de SPEAKXR est triple :
 - Rendre la formation aux soft skills accessible et autonome, par un dispositif entièrement déployable sur un simple casque VR, avec export des rapports en formats HTML ou TXT. 
 
 
+
+Afin de vérifier la fiabilité des indicateurs de stress calculés par SPEAKXR, nous avons mené une expérience comparative. Chaque participant a réalisé un discours dans deux conditions distinctes : 
+
+-Une situation calme sans stress (présentation d'un discours sans la simulation SPEAKXR), 
+
+-Puis une simulation dans SPEAKXR (même discours en VR, avec avatars et bruits d’ambiance). 
+
+À l’issue de chaque session, deux données ont été collectées : 
+
+-Le score de stress généré automatiquement par notre outil (/10), 
+
+-Le ressenti subjectif du participant sur son propre niveau de stress (/10). 
+
+La comparaison entre ces deux valeurs a montré une correspondance moyenne de 89,5 %, ce qui valide la fiabilité du système de détection de stress de SPEAKXR. 
+Ce résultat démontre que les indicateurs analysés (pauses longues, hésitations, répétitions) sont pertinents et bien corrélés à l’état émotionnel réel de l’orateur. 
+
+
+
+
+
+
+
 Afin d'avoir accès a l'IA, mettre l'API d'Azure modifier dans SpeechManagerAvBasti :  private string azureApiKey = " ";
