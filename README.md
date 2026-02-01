@@ -34,3 +34,7 @@ Ce résultat démontre que les indicateurs analysés (pauses longues, hésitatio
 
 
 Afin d'avoir accès a l'IA, mettre l'API d'Azure modifier dans SpeechManagerAvBasti :  private string azureApiKey = " ";
+
+Projet Finaliste du Innovation Projet Efrei 2025
+<img width="1276" height="714" alt="image" src="https://github.com/user-attachments/assets/32af101e-211a-4430-915d-271ec10e0088" />
+
